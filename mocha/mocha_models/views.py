@@ -16,10 +16,12 @@ from pprint import pprint
 
 HOST = "localhost"
 PORT = 8080
-#CONTENT_SIZE = 10000
-#TOPIC_SIZE = 1000
+DATA_NODE_IP_SIZE = 1024
 CONTENT_SIZE = 512
 TOPIC_SIZE = 512
+MASTER_IP = '127.0.0.1'
+MASTER_PORT = 5005
+
 
 def loginview(request):
 	c = {}
@@ -38,12 +40,16 @@ def create_user(username, email, password):
 	user = User(username=username, email=email)
 	#user.set_password(password)
 	#user.save()
+ 	#SOCKET
 	global HOST
 	global PORT
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sock.connect((HOST, PORT))
-	sock.sendall("S;UP; " + username + " " + password)
+	sock.connect((MASTER_IP, MASTER_PORT))
+	sock.send("S;UP; " + username + " " + password)
+	server = sock.recv(DATA_NODE_IP_SIZE)
+	print server
 	sock.close()
+	#SOCKET
 	return user
 
 
@@ -71,6 +77,7 @@ def create_topic(request):
 	#obj = form.save(commit=False)
 	#obj.userid = request.user
 	#obj.save()
+	#SOCKET
 	global HOST
     	global PORT
     	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -78,6 +85,7 @@ def create_topic(request):
     	sock.sendall("S;TC;" + str(request.user) + ";" + str(request.POST['topic']) + ";" + str(request.POST['content']))
 	print repr(request.POST)	
 	sock.close()
+	#SOCKET
 	return redirect("/home/")
     else:
         form = TopicContentForm() # An unbound form
@@ -90,6 +98,7 @@ def subscribe_topic(request):
 	#obj = form.save(commit=False)
 	#obj.userid = request.user
 	#obj.save()
+	#SOCKET
 	global HOST
     	global PORT
     	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -97,6 +106,7 @@ def subscribe_topic(request):
  	sock.sendall("S;UT;" + str(request.POST['topic'])) 
 	print repr(request.POST)
 	sock.close()
+	#SOCKET
 	return redirect("/home/")
     else:
         form = UserTopicForm() # An unbound form
@@ -109,7 +119,7 @@ def subscribe_topic(request):
 
 
 DBNAME = 'default'
-#allll results of a SQL as a list of dicts
+#all results of a SQL as a list of dicts
 def dbfetchall(sql, params=[]):
     #"Returns all rows from SQL query as a dict"
     global DBNAME
@@ -124,6 +134,7 @@ def dbfetchall(sql, params=[]):
 def dbfetchcontent(topic):
    rows = dbfetchall('select content from topic_content where topic = \'' + str(topic) + '\' ORDER BY timestamp')
    return [c['content'] for c in rows]
+   #SOCKET
    global CONTENT_SIZE 
    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
    sock.connect((HOST, PORT))
@@ -131,6 +142,7 @@ def dbfetchcontent(topic):
    sock.sendall("R;TC;" + str(topic) + "\n")
    data = sock.recv(CONTENT_SIZE)
    sock.close()
+   #SOCKET
    return data
    return topic
 
@@ -138,6 +150,7 @@ def dbfetchcontent(topic):
 def dbfetchtopics(username):
    rows = dbfetchall('select topic from user_topic where userid = \'' + str(username) + '\' ORDER BY timestamp') 
    return [c['topic'] for c in rows]
+   #SOCKET
    global TOPIC_SIZE
    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
    sock.connect((HOST, PORT))
@@ -145,6 +158,7 @@ def dbfetchtopics(username):
    sock.sendall("R;UT;" + str(username) + "\n")
    data = sock.recv(TOPIC_SIZE)
    sock.close()
+   #SOCKET
    return data
    return username
 
